@@ -6,8 +6,7 @@ using UnityEngine.InputSystem;
 public class PlayerMovement : MonoBehaviour
 {
     [Header("Constants")]
-
-    //unity controls and constants input
+    
     public float AccelerationMod;
     public float XAxisSensitivity;
     public float YAxisSensitivity;
@@ -15,7 +14,12 @@ public class PlayerMovement : MonoBehaviour
 
     [Space]
 
-    [Range(0, 89)] public float MaxXAngle = 60f;
+    [Header("Pause")]
+    public bool pause;
+
+    [Space]
+
+    [Range(0, 90)] public float MaxXAngle = 90f;
 
     [Space]
 
@@ -23,54 +27,64 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector3 _moveSpeed;
 
+    [Space]
 
-    private void Start()
-    {
-        _moveSpeed = Vector3.zero;
-    }
-
-    // Update is called once per frame
-    private void Update()
-    {
-
-        var acceleration = HandleKeyInput();
-
-        _moveSpeed += acceleration;
-
-        HandleDeceleration(acceleration);
-
-        // clamp the move speed
-        if(_moveSpeed.magnitude > MaximumMovementSpeed)
-        {
-            _moveSpeed = _moveSpeed.normalized * MaximumMovementSpeed;
-        }
-
-        transform.Translate(_moveSpeed);
-    }
-
-    private Vector3 HandleKeyInput(InputAction.CallbackContext context)
-    {
-        var acceleration = Vector3.zero;
-
-        acceleration.x = context.ReadValue<Vector2>().x;
-        acceleration.z = context.ReadValue<Vector2>().y;
-
-        return acceleration.normalized * AccelerationMod;
-    }
+    private Vector3 _acceleration;
 
     private float _rotationX;
 
-    private void HandleMouseRotation(InputAction.CallbackContext context)
-    {
-        var MouseDelta = context.
+    private InputMaster _inputMaster;
 
-        //mouse input
-        var rotationHorizontal = XAxisSensitivity * Input.GetAxis("Mouse X");
-        var rotationVertical = YAxisSensitivity * Input.GetAxis("Mouse Y");
+    // Start is called before the first frame update
+    void Awake() {
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        _moveSpeed = Vector3.zero;
+        _inputMaster = new InputMaster();
+        _inputMaster.Player.Movement.performed += ctx => HandleMovementInput(ctx);
+        _inputMaster.Player.Look.performed += ctx => HandleMouseInput(ctx);
+    }
 
-        //applying mouse rotation
-        // always rotate Y in global world space to avoid gimbal lock
-        transform.Rotate(Vector3.up * rotationHorizontal, Space.World);
+    // Update is called once per frame
+    void Update() {
+        if (!pause) {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            _moveSpeed += _acceleration;
+
+            HandleDeceleration(_acceleration);
+
+            if (_moveSpeed.magnitude > MaximumMovementSpeed) {
+                _moveSpeed = _moveSpeed.normalized * MaximumMovementSpeed;
+            }
+
+            transform.Translate(_moveSpeed);
+        } else {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
+    private void HandleMovementInput(InputAction.CallbackContext context){
+        Debug.Log("Move");
+        var acceleration = Vector3.zero;
+
+        var contextVariable = context.ReadValue<Vector2>();
+        acceleration.x = contextVariable.x;
+        acceleration.z = contextVariable.y;
+
+        _acceleration = acceleration * AccelerationMod;
+    }
+
+    private void HandleMouseInput(InputAction.CallbackContext context) {
+        if (pause) { return; }
+        
+        var mouseDelta = context.ReadValue<Vector2>();
+
+        var rotationHorizontal = XAxisSensitivity * mouseDelta.x;
+        var rotationVertical = YAxisSensitivity * mouseDelta.y;
+
+        transform.Rotate(Vector3.up, rotationHorizontal, Space.World);
 
         var rotationY = transform.localEulerAngles.y;
 
@@ -80,43 +94,41 @@ public class PlayerMovement : MonoBehaviour
         transform.localEulerAngles = new Vector3(-_rotationX, rotationY, 0);
     }
 
-    private void HandleDeceleration(Vector3 acceleration)
-    {
+    private void HandleDeceleration(Vector3 acceleration) {
         //deceleration functionality
-        if (Mathf.Approximately(Mathf.Abs(acceleration.x), 0))
-        {
-            if (Mathf.Abs(_moveSpeed.x) < DecelerationMod)
-            {
+        if (Mathf.Approximately(Mathf.Abs(acceleration.x), 0)) {
+            if (Mathf.Abs(_moveSpeed.x) < DecelerationMod) {
                 _moveSpeed.x = 0;
             }
-            else
-            {
+            else {
                 _moveSpeed.x -= DecelerationMod * Mathf.Sign(_moveSpeed.x);
             }
         }
 
-        if (Mathf.Approximately(Mathf.Abs(acceleration.y), 0))
-        {
-            if (Mathf.Abs(_moveSpeed.y) < DecelerationMod)
-            {
+        if (Mathf.Approximately(Mathf.Abs(acceleration.y), 0)) {
+            if (Mathf.Abs(_moveSpeed.y) < DecelerationMod) {
                 _moveSpeed.y = 0;
             }
-            else
-            {
+            else {
                 _moveSpeed.y -= DecelerationMod * Mathf.Sign(_moveSpeed.y);
             }
         }
 
-        if (Mathf.Approximately(Mathf.Abs(acceleration.z), 0))
-        {
-            if (Mathf.Abs(_moveSpeed.z) < DecelerationMod)
-            {
+        if (Mathf.Approximately(Mathf.Abs(acceleration.z), 0)) {
+            if (Mathf.Abs(_moveSpeed.z) < DecelerationMod) {
                 _moveSpeed.z = 0;
             }
-            else
-            {
+            else {
                 _moveSpeed.z -= DecelerationMod * Mathf.Sign(_moveSpeed.z);
             }
         }
+    }
+
+    private void OnEnable() {
+        _inputMaster.Enable();
+    }
+
+    private void OnDisable() {
+        _inputMaster.Disable();
     }
 }
