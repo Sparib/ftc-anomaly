@@ -5,6 +5,7 @@ ScriptsOnlyBuild:
     - UIMaster
     Unity.InputSystem.dll:
     - UnityEngine.InputSystem.InputActionAsset
+    - UnityEngine.InputSystem.InputActionReference
     - UnityEngine.InputSystem.InputSettings
     - UnityEngine.InputSystem.InputSystemObject
     - UnityEngine.InputSystem.RemoteInputPlayerConnection
@@ -84,6 +85,8 @@ ScriptsOnlyBuild:
       Script: {instanceID: 13620}
     - Class: 114
       Script: {instanceID: 13638}
+    - Class: 114
+      Script: {instanceID: 13856}
     - Class: 114
       Script: {instanceID: 13898}
     - Class: 114
